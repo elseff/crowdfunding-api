@@ -50,6 +50,7 @@ public class ProjectController {
                         .name(p.getName())
                         .description(p.getDescription())
                         .author(UserDto.builder()
+                                .id(p.getAuthor().getId())
                                 .firstName(p.getAuthor().getFirstName())
                                 .lastName(p.getAuthor().getLastName())
                                 .build())
@@ -97,14 +98,21 @@ public class ProjectController {
     }
 
     @PostMapping("/{projectId}/images/upload")
-    public AddImageResponse addImage(@PathVariable Long projectId,
-                                     @RequestParam("file") MultipartFile file) {
+    public ImageOperationResponse addImage(@PathVariable Long projectId,
+                                           @RequestParam("file") MultipartFile file,
+                                           @RequestParam Long userId) {
         Optional<Project> projectOptional = projectRepository.findById(projectId);
         if (projectOptional.isEmpty()) {
             throw new IllegalArgumentException("Project is not found");
         }
         Project project = projectOptional.get();
-
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User is not found");
+        }
+        if (!project.getAuthor().getId().equals(userOptional.get().getId())) {
+            throw new IllegalArgumentException("Someone else project");
+        }
         try {
             Image image = Image.builder()
                     .name(file.getOriginalFilename())
@@ -116,14 +124,44 @@ public class ProjectController {
             throw new IllegalArgumentException("could not save file");
         }
 
-        return AddImageResponse.builder()
+        return ImageOperationResponse.builder()
                 .name(file.getOriginalFilename())
                 .message("Image successfully added to project")
                 .build();
     }
 
+    @DeleteMapping("/{projectId}/images/{imageId}")
+    public ImageOperationResponse deleteImage(@PathVariable Long projectId,
+                                              @PathVariable Long imageId,
+                                              @RequestParam Long userId) {
+        Optional<Project> projectOptional = projectRepository.findById(projectId);
+        if (projectOptional.isEmpty()) {
+            throw new IllegalArgumentException("Project is not found");
+        }
+        Project project = projectOptional.get();
+        Optional<Image> imageOptional = imageRepository.findById(imageId);
+        if (imageOptional.isEmpty()) {
+            throw new IllegalArgumentException("Image is not found");
+        }
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User is not found");
+        }
+        if (!project.getAuthor().getId().equals(userOptional.get().getId())) {
+            throw new IllegalArgumentException("Someone else project");
+        }
+        Image image = imageOptional.get();
+        imageRepository.delete(image);
+
+        return ImageOperationResponse.builder()
+                .name(image.getName())
+                .message("Image deleted successfully")
+                .build();
+    }
+
     @GetMapping(value = "/{projectId}/images/{imageId}", produces = MediaType.IMAGE_JPEG_VALUE)
-    public ResponseEntity<Resource> findImage(@PathVariable Long projectId, @PathVariable Long imageId) {
+    public ResponseEntity<Resource> findImage(@PathVariable Long projectId,
+                                              @PathVariable Long imageId) {
         Optional<Project> projectOptional = projectRepository.findById(projectId);
         if (projectOptional.isEmpty()) {
             throw new IllegalArgumentException("Project is not found");
