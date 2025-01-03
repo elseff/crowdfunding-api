@@ -204,4 +204,37 @@ public class ProjectController {
                 .message("Comment created successfully")
                 .build();
     }
+
+    @PostMapping("/{projectId}/support")
+    @Transactional(rollbackFor = IllegalArgumentException.class)
+    public SupportProjectResponse supportProject(@PathVariable Long projectId,
+                                                 @RequestParam Long userId,
+                                                 @RequestParam Integer amount) {
+        Optional<Project> projectOptional = projectRepository.findById(projectId);
+        if (projectOptional.isEmpty()) {
+            throw new IllegalArgumentException("Project is not found");
+        }
+        Project project = projectOptional.get();
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User is not found");
+        }
+        User user = userOptional.get();
+        if (project.getAuthor().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("You cannot support your own project");
+        }
+        if (user.getBalance() < amount) {
+            throw new IllegalArgumentException("Insufficient funds");
+        }
+        user.setBalance(user.getBalance() - amount);
+        project.getAuthor().setBalance(project.getAuthor().getBalance() + amount);
+        userRepository.save(user);
+        projectRepository.save(project);
+
+        return SupportProjectResponse.builder()
+                .amount(amount)
+                .projectName(project.getName())
+                .message("Successfully supported project")
+                .build();
+    }
 }
