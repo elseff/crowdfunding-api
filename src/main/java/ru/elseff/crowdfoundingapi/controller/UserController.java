@@ -7,8 +7,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ru.elseff.crowdfoundingapi.dao.entity.User;
 import ru.elseff.crowdfoundingapi.dao.repository.UserRepository;
 import ru.elseff.crowdfoundingapi.dto.UserDto;
 
@@ -31,10 +33,26 @@ public class UserController {
                 .findAll()
                 .stream()
                 .map(u -> UserDto.builder()
+                        .id(u.getId())
                         .firstName(u.getFirstName())
                         .lastName(u.getLastName())
                         .email(u.getEmail())
                         .build())
                 .toList();
     }
+
+    @GetMapping("/{userId}")
+    public UserDto findById(@PathVariable Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        return UserDto.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .balance(user.getBalance())
+                .build();
+    }
+
 }
