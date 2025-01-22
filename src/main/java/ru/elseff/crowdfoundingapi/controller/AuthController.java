@@ -15,10 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.elseff.crowdfoundingapi.dao.entity.User;
 import ru.elseff.crowdfoundingapi.dao.repository.UserRepository;
-import ru.elseff.crowdfoundingapi.dto.LoginResponse;
 import ru.elseff.crowdfoundingapi.dto.LoginUserRequest;
 import ru.elseff.crowdfoundingapi.dto.RegisterUserRequest;
 import ru.elseff.crowdfoundingapi.dto.RegisterUserResponse;
+import ru.elseff.crowdfoundingapi.dto.UserDto;
 
 import java.util.Optional;
 
@@ -43,37 +43,48 @@ public class AuthController {
             throw new IllegalArgumentException(message);
         }
 
-        userRepository.findByEmail(request.getEmail())
-                .ifPresentOrElse(user -> {
-                            throw new IllegalArgumentException("User with email " + request.getEmail() + " already exists");
-                        },
-                        () -> {
-                            User user = User.builder()
-                                    .firstName(request.getFirstName())
-                                    .lastName(request.getLastName())
-                                    .email(request.getEmail())
-                                    .password(request.getPassword())
-                                    .build();
-                            userRepository.save(user);
-                        });
+
+        Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
+        if (userOptional
+                .isPresent()) {
+            throw new IllegalArgumentException("User with email " + request.getEmail() + " already exists");
+        }
+
+
+        User user = User.builder()
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .email(request.getEmail())
+                .password(request.getPassword())
+                .build();
+        user = userRepository.save(user);
 
         return RegisterUserResponse.builder()
-                .email(request.getEmail())
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .balance(user.getBalance())
                 .message("Пользователь успешно зарегистрирован")
                 .build();
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody @Valid LoginUserRequest request) {
+    public UserDto login(@RequestBody @Valid LoginUserRequest request) {
         Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
         if (userOptional.isEmpty()) {
             throw new IllegalArgumentException("User with email" + request.getEmail() + "doesn't exists");
         }
         User user = userOptional.get();
         if (user.getPassword().equals(request.getPassword())) {
-            return new LoginResponse("success");
+            return UserDto.builder()
+                    .id(user.getId())
+                    .firstName(user.getFirstName())
+                    .lastName(user.getLastName())
+                    .email(user.getEmail())
+                    .build();
         } else {
-            return new LoginResponse("incorrect password");
+            throw new IllegalArgumentException("incorrect password");
         }
     }
 }
