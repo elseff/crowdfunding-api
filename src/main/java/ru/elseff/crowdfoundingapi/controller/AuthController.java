@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.elseff.crowdfoundingapi.dao.entity.User;
 import ru.elseff.crowdfoundingapi.dao.repository.UserRepository;
 import ru.elseff.crowdfoundingapi.dto.LoginResponse;
+import ru.elseff.crowdfoundingapi.dto.LoginUserRequest;
 import ru.elseff.crowdfoundingapi.dto.RegisterUserRequest;
 import ru.elseff.crowdfoundingapi.dto.RegisterUserResponse;
 
@@ -63,7 +64,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody @Valid RegisterUserRequest request) {
+    public LoginResponse login(@RequestBody @Valid LoginUserRequest request) {
         Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
         if (userOptional.isEmpty()) {
             throw new IllegalArgumentException("User with email" + request.getEmail() + "doesn't exists");

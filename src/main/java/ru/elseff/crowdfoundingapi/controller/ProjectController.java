@@ -78,7 +78,7 @@ public class ProjectController {
     }
 
     @PostMapping
-    public CreateProjectResponse createProject(@RequestBody CreateProjectRequest request) {
+    public CreateProjectResponse createProject(@RequestBody @Valid CreateProjectRequest request) {
         Optional<User> userOptional = userRepository.findById(request.getAuthorId());
         if (userOptional.isEmpty()) {
             throw new IllegalArgumentException("user with id " + request.getAuthorId() + " is not found");
