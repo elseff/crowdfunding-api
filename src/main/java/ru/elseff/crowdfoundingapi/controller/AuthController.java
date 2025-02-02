@@ -50,7 +50,6 @@ public class AuthController {
             throw new IllegalArgumentException("User with email " + request.getEmail() + " already exists");
         }
 
-
         User user = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
@@ -82,6 +81,7 @@ public class AuthController {
                     .firstName(user.getFirstName())
                     .lastName(user.getLastName())
                     .email(user.getEmail())
+                    .balance(user.getBalance())
                     .build();
         } else {
             throw new IllegalArgumentException("incorrect password");
