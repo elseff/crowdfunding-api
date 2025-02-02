@@ -1,5 +1,7 @@
 package ru.elseff.crowdfoundingapi.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,7 @@ import java.util.Optional;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProjectController {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     CommentRepository commentRepository;
     ProjectRepository projectRepository;
     ImageRepository imageRepository;
@@ -66,6 +69,7 @@ public class ProjectController {
                                 .map(c -> CommentDto.builder()
                                         .id(c.getId())
                                         .text(c.getText())
+                                        .createdAt(c.getCreatedAt())
                                         .user(UserDto.builder()
                                                 .id(c.getUser().getId())
                                                 .firstName(c.getUser().getFirstName())
@@ -237,4 +241,27 @@ public class ProjectController {
                 .message("Successfully supported project")
                 .build();
     }
+
+    @DeleteMapping("/{projectId}")
+    public ResponseEntity<String> deleteProject(@PathVariable Long projectId,
+                                                @RequestParam Long userId) throws JsonProcessingException {
+        Optional<Project> projectOptional = projectRepository.findById(projectId);
+        if (projectOptional.isEmpty()) {
+            throw new IllegalArgumentException("Project is not found");
+        }
+        Project project = projectOptional.get();
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User is not found");
+        }
+        if (!project.getAuthor().getId().equals(userOptional.get().getId())) {
+            throw new IllegalArgumentException("Someone else project");
+        }
+        projectRepository.delete(project);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(objectMapper.writeValueAsString("Проект успешно удалён"));
+    }
+
 }

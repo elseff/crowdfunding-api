@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @Builder
@@ -15,4 +17,5 @@ public class CommentDto {
     Long id;
     String text;
     UserDto user;
+    LocalDateTime createdAt;
 }
