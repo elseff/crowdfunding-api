@@ -26,6 +26,7 @@ import ru.elseff.crowdfoundingapi.dao.repository.UserRepository;
 import ru.elseff.crowdfoundingapi.dto.*;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -76,6 +77,7 @@ public class ProjectController {
                                                 .lastName(c.getUser().getLastName())
                                                 .build())
                                         .build())
+                                .sorted(Comparator.comparing(CommentDto::getCreatedAt).reversed())
                                 .toList())
                         .build())
                 .toList();
