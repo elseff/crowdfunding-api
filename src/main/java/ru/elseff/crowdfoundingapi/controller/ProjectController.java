@@ -103,10 +103,13 @@ public class ProjectController {
                 .build();
     }
 
-    @PostMapping("/{projectId}/images/upload")
+    @PostMapping(
+            value = "/{projectId}/images/upload/{userId}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE // Явное указание
+    )
     public ImageOperationResponse addImage(@PathVariable Long projectId,
-                                           @RequestParam("file") MultipartFile file,
-                                           @RequestParam Long userId) {
+                                           @RequestPart("file") MultipartFile[] files,
+                                           @PathVariable Long userId) {
         Optional<Project> projectOptional = projectRepository.findById(projectId);
         if (projectOptional.isEmpty()) {
             throw new IllegalArgumentException("Project is not found");
@@ -119,19 +122,24 @@ public class ProjectController {
         if (!project.getAuthor().getId().equals(userOptional.get().getId())) {
             throw new IllegalArgumentException("Someone else project");
         }
+        if(files.length==0){
+            throw new IllegalArgumentException("file is empty");
+        }
         try {
-            Image image = Image.builder()
-                    .name(file.getOriginalFilename())
-                    .project(project)
-                    .data(file.getResource().getContentAsByteArray())
-                    .build();
-            imageRepository.save(image);
+            for (MultipartFile file : files) {
+                Image image = Image.builder()
+                        .name(file.getOriginalFilename())
+                        .project(project)
+                        .data(file.getResource().getContentAsByteArray())
+                        .build();
+                imageRepository.save(image);
+            }
         } catch (IOException e) {
             throw new IllegalArgumentException("could not save file");
         }
 
         return ImageOperationResponse.builder()
-                .name(file.getOriginalFilename())
+                .name(files[0].getOriginalFilename())
                 .message("Image successfully added to project")
                 .build();
     }
