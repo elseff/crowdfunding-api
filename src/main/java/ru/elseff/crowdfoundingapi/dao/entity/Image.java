@@ -23,7 +23,7 @@ public class Image {
     @Column(name = "data", columnDefinition = "BYTEA")
     byte[] data;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "project_id", nullable = false, updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
     Project project;
 }
