@@ -30,8 +30,8 @@ public class Comment {
     @JoinColumn(name = "user_id", nullable = false, updatable = false)
     User user;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "project_id", nullable = false, updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
     Project project;
 
     @PrePersist

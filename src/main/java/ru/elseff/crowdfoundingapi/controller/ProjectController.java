@@ -144,27 +144,33 @@ public class ProjectController {
                 .build();
     }
 
+    @Transactional
     @DeleteMapping("/{projectId}/images/{imageId}")
     public ImageOperationResponse deleteImage(@PathVariable Long projectId,
                                               @PathVariable Long imageId,
                                               @RequestParam Long userId) {
-        Optional<Project> projectOptional = projectRepository.findById(projectId);
-        if (projectOptional.isEmpty()) {
-            throw new IllegalArgumentException("Project is not found");
-        }
-        Project project = projectOptional.get();
-        Optional<Image> imageOptional = imageRepository.findById(imageId);
-        if (imageOptional.isEmpty()) {
-            throw new IllegalArgumentException("Image is not found");
-        }
-        Optional<User> userOptional = userRepository.findById(userId);
-        if (userOptional.isEmpty()) {
-            throw new IllegalArgumentException("User is not found");
-        }
-        if (!project.getAuthor().getId().equals(userOptional.get().getId())) {
+        // Поиск проекта
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("Project is not found"));
+
+        // Поиск изображения
+        Image image = imageRepository.findById(imageId)
+                .orElseThrow(() -> new IllegalArgumentException("Image is not found"));
+
+        // Поиск пользователя
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User is not found"));
+
+        // Проверка прав доступа
+        if (!project.getAuthor().getId().equals(user.getId())) {
             throw new IllegalArgumentException("Someone else project");
         }
-        Image image = imageOptional.get();
+
+        // Удаление изображения из проекта (если есть связь)
+        project.getImages().remove(image);
+        projectRepository.save(project);
+
+        // Удаление изображения
         imageRepository.delete(image);
 
         return ImageOperationResponse.builder()

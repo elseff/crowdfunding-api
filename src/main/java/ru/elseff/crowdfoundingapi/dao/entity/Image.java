@@ -18,12 +18,13 @@ public class Image {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     Long id;
 
+    @Column(name = "name", nullable = false)
     String name;
 
     @Column(name = "data", columnDefinition = "BYTEA")
     byte[] data;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "project_id", nullable = false)
     Project project;
 }
