@@ -7,5 +7,5 @@
 - JUnit
 - Mockito
 - PostgreSQL
-- Hivernate Validator
+- Hibernate Validator
 - Maven
