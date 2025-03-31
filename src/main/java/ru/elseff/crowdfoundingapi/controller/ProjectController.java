@@ -9,23 +9,20 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import ru.elseff.crowdfoundingapi.dao.entity.Comment;
-import ru.elseff.crowdfoundingapi.dao.entity.Image;
-import ru.elseff.crowdfoundingapi.dao.entity.Project;
-import ru.elseff.crowdfoundingapi.dao.entity.User;
-import ru.elseff.crowdfoundingapi.dao.repository.CommentRepository;
-import ru.elseff.crowdfoundingapi.dao.repository.ImageRepository;
-import ru.elseff.crowdfoundingapi.dao.repository.ProjectRepository;
-import ru.elseff.crowdfoundingapi.dao.repository.UserRepository;
+import ru.elseff.crowdfoundingapi.dao.entity.*;
+import ru.elseff.crowdfoundingapi.dao.repository.*;
 import ru.elseff.crowdfoundingapi.dto.*;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +37,7 @@ import java.util.Optional;
 public class ProjectController {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    ProjectCategoryRepository projectCategoryRepository;
     CommentRepository commentRepository;
     ProjectRepository projectRepository;
     ImageRepository imageRepository;
@@ -53,6 +51,15 @@ public class ProjectController {
                         .id(p.getId())
                         .name(p.getName())
                         .description(p.getDescription())
+                        .target(p.getTarget())
+                        .collected(p.getCollected())
+                        .createdAt(p.getCreatedAt())
+                        .closed(p.isClosed())
+                        .closedAt(p.getClosedAt())
+                        .category(ProjectCategoryDto.builder()
+                                .id(p.getCategory().getId())
+                                .name(p.getCategory().getName())
+                                .build())
                         .author(UserDto.builder()
                                 .id(p.getAuthor().getId())
                                 .firstName(p.getAuthor().getFirstName())
@@ -90,12 +97,21 @@ public class ProjectController {
             throw new IllegalArgumentException("user with id " + request.getAuthorId() + " is not found");
         }
         User user = userOptional.get();
+
+        Optional<ProjectCategory> categoryOptional = projectCategoryRepository.findByName(request.getCategory());
+        if (categoryOptional.isEmpty()) {
+            throw new IllegalArgumentException("category with name " + request.getCategory() + " is not found");
+        }
+        ProjectCategory category = categoryOptional.get();
+
         Project project = Project.builder()
                 .name(request.getName())
                 .description(request.getDescription())
                 .author(user)
+                .target(request.getTarget())
+                .category(category)
                 .build();
-        projectRepository.save(project);
+        this.projectRepository.save(project);
 
         return CreateProjectResponse.builder()
                 .name(project.getName())
@@ -122,7 +138,7 @@ public class ProjectController {
         if (!project.getAuthor().getId().equals(userOptional.get().getId())) {
             throw new IllegalArgumentException("Someone else project");
         }
-        if(files.length==0){
+        if (files.length == 0) {
             throw new IllegalArgumentException("file is empty");
         }
         try {
@@ -247,7 +263,7 @@ public class ProjectController {
             throw new IllegalArgumentException("Insufficient funds");
         }
         user.setBalance(user.getBalance() - amount);
-        project.getAuthor().setBalance(project.getAuthor().getBalance() + amount);
+        project.setCollected(project.getCollected() + amount);
         userRepository.save(user);
         projectRepository.save(project);
 
@@ -278,6 +294,35 @@ public class ProjectController {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(objectMapper.writeValueAsString("Проект успешно удалён"));
+    }
+
+    @PostMapping("/{projectId}/close")
+    @Transactional(rollbackFor = IllegalArgumentException.class)
+    public ResponseEntity<String> closeProject(@PathVariable Long projectId,
+                                               @RequestParam Long userId) throws JsonProcessingException {
+        Optional<Project> projectOptional = projectRepository.findById(projectId);
+        if (projectOptional.isEmpty()) {
+            throw new IllegalArgumentException("Project is not found");
+        }
+        Project project = projectOptional.get();
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User is not found");
+        }
+        User user = userOptional.get();
+        if (!project.getAuthor().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Someone else project");
+        }
+
+        project.setClosed(true);
+        project.setClosedAt(LocalDateTime.now());
+        user.setBalance(user.getBalance() + project.getCollected());
+        project.setCollected(0);
+        projectRepository.save(project);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(objectMapper.writeValueAsString("Проект успешно закрыт"));
     }
 
 }

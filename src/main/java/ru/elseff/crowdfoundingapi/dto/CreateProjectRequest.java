@@ -19,4 +19,8 @@ public class CreateProjectRequest {
     String description;
     @NotNull(message = "authorId не должно быть пустым")
     Long authorId;
+    @NotNull(message = "category не должно быть пустым")
+    String category;
+    @NotNull(message = "target не должно быть пустым")
+    Integer target;
 }
